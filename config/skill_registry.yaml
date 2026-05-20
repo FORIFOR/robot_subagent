@@ -1,0 +1,66 @@
+skills:
+- id: grab_cube
+  description: キューブを掴む
+  object_required: true
+  color_required: false
+  vla_template: Grab the cube
+  vla_template_with_color: Grab the {color} cube
+  allowed_objects:
+  - cube
+  allowed_colors:
+  - red
+  - blue
+  - green
+  - black
+  - white
+  examples:
+  - user: キューブをつかんで
+    vla_instruction: Grab the cube
+  - user: 赤いキューブをつかんで
+    vla_instruction: Grab the red cube
+- id: pick_apple
+  description: リンゴを取る
+  object_required: true
+  color_required: false
+  vla_template: Pick the apple
+  vla_template_with_color: Pick the {color} apple
+  allowed_objects:
+  - apple
+  allowed_colors:
+  - red
+  - green
+  - yellow
+  examples:
+  - user: りんごを取って
+    vla_instruction: Pick the apple
+  - user: 赤いりんごを取って
+    vla_instruction: Pick the red apple
+- id: place_on_plate
+  description: 指定された物体を皿の上に置く
+  object_required: true
+  color_required: false
+  vla_template: Put the {object} on the plate
+  vla_template_with_color: Put the {color} {object} on the plate
+  allowed_objects:
+  - cube
+  - cup
+  - apple
+  allowed_colors:
+  - red
+  - blue
+  - green
+  - black
+  - white
+  - yellow
+  examples:
+  - user: カップを皿に置いて
+    vla_instruction: Put the cup on the plate
+  - user: 青いカップを皿に置いて
+    vla_instruction: Put the blue cup on the plate
+- id: move_to_home
+  description: ホームに戻る
+  object_required: false
+  color_required: false
+  vla_template: Move the arm to the home position
+  allowed_objects: []
+  allowed_colors: []
