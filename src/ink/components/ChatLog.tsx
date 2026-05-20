@@ -40,6 +40,46 @@ export function ChatLog({items}: {items: LogItem[]}) {
           );
         }
 
+        if (item.type === 'llm') {
+          const r = item.result;
+          const m = r.metrics;
+          return (
+            <Box key={index} marginTop={1} flexDirection="column">
+              <Text color={r.ok ? 'cyan' : 'red'}>{`llm / ${r.model}`}</Text>
+              {r.ok ? (
+                <>
+                  <Text>{r.response}</Text>
+                  <Box marginTop={1} flexDirection="column">
+                    <Text color="magenta">Metrics</Text>
+                    <Text>{`total: ${r.total_time_s.toFixed(2)}s`}</Text>
+                    <Text>
+                      {`first_token: ${r.first_token_time_s == null ? 'n/a' : r.first_token_time_s.toFixed(2) + 's'}`}
+                    </Text>
+                    <Text>
+                      {`tokens/sec: ${r.tokens_per_second == null ? 'n/a' : r.tokens_per_second.toFixed(2)}`}
+                    </Text>
+                    <Text>{`eval_count: ${r.eval_count ?? 'n/a'}`}</Text>
+                    <Text>
+                      {`cpu peak/avg: ${m.cpu_peak_percent.toFixed(1)}% / ${m.cpu_avg_percent.toFixed(1)}%`}
+                    </Text>
+                    <Text>
+                      {`ram peak: ${(m.ram_peak_mb / 1024).toFixed(2)} GB (${m.ram_peak_percent.toFixed(1)}%)`}
+                    </Text>
+                    <Text>
+                      {`gpu peak/avg: ${m.gpu_peak_percent == null ? 'n/a' : m.gpu_peak_percent.toFixed(1) + '% / ' + (m.gpu_avg_percent ?? 0).toFixed(1) + '%'}`}
+                    </Text>
+                    <Text>
+                      {`vram peak: ${m.vram_peak_mb == null ? 'n/a' : (m.vram_peak_mb / 1024).toFixed(2) + ' GB / ' + ((m.vram_total_mb ?? 0) / 1024).toFixed(2) + ' GB'}`}
+                    </Text>
+                  </Box>
+                </>
+              ) : (
+                <Text color="red">{r.error ?? 'LLM call failed'}</Text>
+              )}
+            </Box>
+          );
+        }
+
         const r = item.result;
         return (
           <Box key={index} marginTop={1} flexDirection="column">

@@ -183,6 +183,43 @@ def execute_json(
     )
 
 
+@app.command("ollama-models-json")
+def ollama_models_json() -> None:
+    """List models pulled into the local Ollama and emit JSON on stdout."""
+    from .ollama_test_client import list_ollama_models
+
+    try:
+        models = list_ollama_models()
+        typer.echo(json.dumps({"ok": True, "models": models}, ensure_ascii=False))
+    except Exception as e:
+        typer.echo(
+            json.dumps({"ok": False, "models": [], "error": str(e)}, ensure_ascii=False)
+        )
+        raise typer.Exit(code=1)
+
+
+@app.command("llm-chat-json")
+def llm_chat_json(
+    text: str = typer.Argument(..., help="User message"),
+    model: str = typer.Option("qwen3:14b", "--model", help="Ollama model id"),
+    temperature: float = typer.Option(0.2, "--temperature"),
+) -> None:
+    """Send one chat to Ollama and emit timing + system metrics as JSON."""
+    from .ollama_test_client import chat_with_ollama_measured
+
+    system = (
+        "あなたは日本語で自然に回答するアシスタントです。"
+        "短く、明確に、日本語で答えてください。"
+    )
+    result = chat_with_ollama_measured(
+        prompt=text,
+        model=model,
+        system=system,
+        temperature=temperature,
+    )
+    typer.echo(json.dumps(result.to_dict(), ensure_ascii=False))
+
+
 @app.command()
 def ui(
     execute: bool = typer.Option(False, "--execute", help="Start in execute mode"),

@@ -84,6 +84,68 @@ export async function parseRobotCommand(text: string): Promise<ParseResponse> {
   return ParseResponseSchema.parse(pickStdoutJson(stdout));
 }
 
+// -- LLM test mode -----------------------------------------------------------
+
+const LlmMetricsSchema = z.object({
+  cpu_peak_percent: z.number(),
+  cpu_avg_percent: z.number(),
+  ram_peak_mb: z.number(),
+  ram_peak_percent: z.number(),
+  gpu_peak_percent: z.number().nullable().optional(),
+  gpu_avg_percent: z.number().nullable().optional(),
+  vram_peak_mb: z.number().nullable().optional(),
+  vram_total_mb: z.number().nullable().optional(),
+  samples: z.number()
+});
+
+const LlmChatResponseSchema = z.object({
+  ok: z.boolean(),
+  model: z.string(),
+  prompt: z.string(),
+  response: z.string(),
+  total_time_s: z.number(),
+  first_token_time_s: z.number().nullable(),
+  eval_count: z.number().nullable(),
+  eval_duration_s: z.number().nullable(),
+  tokens_per_second: z.number().nullable(),
+  ollama_raw: z.any().nullable(),
+  metrics: LlmMetricsSchema,
+  error: z.string().nullable()
+});
+
+export type LlmMetrics = z.infer<typeof LlmMetricsSchema>;
+export type LlmChatResponse = z.infer<typeof LlmChatResponseSchema>;
+
+const OllamaModelsResponseSchema = z.object({
+  ok: z.boolean(),
+  models: z.array(z.string()),
+  error: z.string().optional()
+});
+
+export async function loadOllamaModels(): Promise<string[]> {
+  const {stdout} = await execa(PYTHON_BIN, ['ollama-models-json'], {
+    env: process.env,
+    reject: false
+  });
+  const parsed = OllamaModelsResponseSchema.parse(pickStdoutJson(stdout));
+  if (!parsed.ok) throw new Error(parsed.error ?? 'Failed to load Ollama models');
+  return parsed.models;
+}
+
+export async function llmChatMeasured(
+  text: string,
+  model: string
+): Promise<LlmChatResponse> {
+  const {stdout} = await execa(
+    PYTHON_BIN,
+    ['llm-chat-json', text, '--model', model],
+    {env: process.env, reject: false}
+  );
+  return LlmChatResponseSchema.parse(pickStdoutJson(stdout));
+}
+
+// -- robot execution ---------------------------------------------------------
+
 export async function executeRobotCommand(text: string): Promise<ExecuteResponse> {
   const {stdout} = await execa(PYTHON_BIN, ['execute-json', text], {
     env: process.env,
