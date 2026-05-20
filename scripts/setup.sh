@@ -28,6 +28,8 @@ say()  { printf '\033[1;36m==>\033[0m %s\n' "$*"; }
 ok()   { printf '  \033[1;32mok\033[0m  %s\n' "$*"; }
 warn() { printf '  \033[1;33mwarn\033[0m  %s\n' "$*"; }
 err()  { printf '  \033[1;31merror\033[0m %s\n' "$*" >&2; }
+# `cmd` prints a one-line copy-pastable command in its own indented block.
+cmd()  { printf '\n        \033[1;36m$ %s\033[0m\n\n' "$*"; }
 
 # --- Python -----------------------------------------------------------------
 
@@ -88,13 +90,17 @@ if command -v ollama >/dev/null; then
         if curl -s http://localhost:11434/api/tags | grep -q "\"$MODEL\""; then
             ok "Model '$MODEL' already pulled"
         else
-            warn "Model '$MODEL' not pulled yet. Run: ollama pull $MODEL"
+            warn "Model '$MODEL' is not pulled yet. Run this in another terminal:"
+            cmd "ollama pull $MODEL"
         fi
     else
-        warn "Ollama installed but server not responding. Start it with: ollama serve"
+        warn "Ollama is installed but the server is not responding. Start it with:"
+        cmd "ollama serve"
     fi
 else
-    warn "Ollama not installed. To use a local LLM: https://ollama.com, or set OPENAI_API_KEY in .env."
+    warn "Ollama is not installed. Install it from https://ollama.com, e.g.:"
+    cmd "curl -fsSL https://ollama.com/install.sh | sh"
+    warn "Or, to use hosted OpenAI instead, set OPENAI_API_KEY in .env."
 fi
 
 # --- Done -------------------------------------------------------------------
