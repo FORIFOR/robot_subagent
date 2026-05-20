@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import typer
@@ -87,6 +88,99 @@ def run(
 
     result = send_to_openvla(command)
     console.print(Panel(result.model_dump_json(indent=2), title="OpenVLA Result"))
+
+
+# ---------------------------------------------------------------------------
+# JSON commands (for Ink/Node TUI and other external consumers)
+# ---------------------------------------------------------------------------
+
+
+def _skill_to_json(skill: Skill | None) -> dict | None:
+    """Public-shape JSON for one skill. Includes executor stubs for forward compat."""
+    if skill is None:
+        return None
+    return {
+        "id": skill.id,
+        "description": skill.description,
+        "aliases": list(skill.aliases),
+        "template": skill.vla_template,
+        "template_with_color": skill.vla_template_with_color,
+        "allowed_objects": list(skill.allowed_objects),
+        "allowed_colors": list(skill.allowed_colors),
+        "object_required": skill.object_required,
+        "color_required": skill.color_required,
+        # Executor stubs — populated when a `lerobot_record_act` adapter ships.
+        "executor_type": None,
+        "single_task": None,
+        "policy_path": None,
+    }
+
+
+@app.command("parse-json")
+def parse_json(text: str = typer.Argument(..., help="Natural language robot command")) -> None:
+    """Parse a command and emit a single JSON object on stdout (for Ink UI)."""
+    command = normalize_command(text)
+    registry = load_skill_registry()
+    safety = safety_check(command, registry)
+    skill = find_skill(registry, command.skill_id)
+
+    payload = {
+        "ok": safety.ok,
+        "command": command.model_dump(),
+        "safety": safety.model_dump(),
+        "skill": _skill_to_json(skill),
+        "shell_command": None,  # filled in once an executor abstraction lands
+    }
+    typer.echo(json.dumps(payload, ensure_ascii=False))
+
+
+@app.command("skills-json")
+def skills_json() -> None:
+    """Emit the full skill registry as JSON on stdout."""
+    registry = load_skill_registry()
+    payload = {"skills": [_skill_to_json(s) for s in registry.skills]}
+    typer.echo(json.dumps(payload, ensure_ascii=False))
+
+
+@app.command("execute-json")
+def execute_json(
+    text: str = typer.Argument(..., help="Natural language robot command"),
+) -> None:
+    """Parse, safety-check, send to OpenVLA, and emit a single JSON object on stdout.
+
+    Currently the executor is the OpenVLA HTTP client. When a `lerobot_record_act`
+    adapter is wired in, dispatch by skill.executor.type here.
+    """
+    command = normalize_command(text)
+    registry = load_skill_registry()
+    safety = safety_check(command, registry)
+
+    if not safety.ok:
+        typer.echo(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": safety.reason,
+                    "safety": safety.model_dump(),
+                    "command": command.model_dump(),
+                },
+                ensure_ascii=False,
+            )
+        )
+        raise typer.Exit(code=1)
+
+    result = send_to_openvla(command)
+    typer.echo(
+        json.dumps(
+            {
+                "ok": result.ok,
+                "result": result.model_dump(),
+                "safety": safety.model_dump(),
+                "command": command.model_dump(),
+            },
+            ensure_ascii=False,
+        )
+    )
 
 
 @app.command()

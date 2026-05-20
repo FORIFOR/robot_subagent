@@ -64,3 +64,26 @@ skills:
   vla_template: Move the arm to the home position
   allowed_objects: []
   allowed_colors: []
+- id: wave_hand
+  description: ロボットアームで手を振るような動作をする
+  object_required: false
+  color_required: false
+  vla_template: Wave your hand
+  allowed_objects:
+  - robot_hand
+  - arm
+  - none
+  allowed_colors: []
+  aliases:
+  - ばいばい
+  - バイバイ
+  - 手を振って
+  - 手を振る
+  - wave your hand
+  - wave hand
+  - wave
+  examples:
+  - user: ばいばい
+    vla_instruction: Wave your hand
+  - user: 手を振って
+    vla_instruction: Wave your hand

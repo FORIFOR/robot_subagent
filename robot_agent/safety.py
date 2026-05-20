@@ -13,7 +13,6 @@ from .skills import find_skill
 
 BLOCKED_WORDS = [
     "人",
-    "手",
     "顔",
     "壊",
     "投げ",
@@ -42,7 +41,18 @@ def safety_check(command: RobotCommand, registry: SkillRegistry) -> SafetyResult
             reason=f"未登録のskill_idです: {command.skill_id}",
         )
 
-    if skill.object_required and command.object not in skill.allowed_objects:
+    if skill.object_required and not command.object:
+        return SafetyResult(
+            ok=False,
+            level="blocked",
+            reason=f"{command.skill_id} はobject指定が必須です",
+        )
+
+    if (
+        command.object
+        and skill.allowed_objects
+        and command.object not in skill.allowed_objects
+    ):
         return SafetyResult(
             ok=False,
             level="blocked",

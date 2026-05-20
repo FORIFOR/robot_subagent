@@ -21,6 +21,7 @@ class Skill(BaseModel):
 
     allowed_objects: list[str] = Field(default_factory=list)
     allowed_colors: list[str] = Field(default_factory=list)
+    aliases: list[str] = Field(default_factory=list)
     examples: list[dict] = Field(default_factory=list)
 
 

@@ -47,6 +47,8 @@ def _skill_to_yaml_dict(skill: Skill) -> dict:
         d.pop("vla_template_with_color", None)
     if not d.get("examples"):
         d.pop("examples", None)
+    if not d.get("aliases"):
+        d.pop("aliases", None)
     return d
 
 
@@ -62,6 +64,8 @@ def render_skill_list(registry: SkillRegistry) -> str:
             lines.append(f"  vla_template_with_color: {skill.vla_template_with_color}")
         lines.append(f"  allowed_objects: {', '.join(skill.allowed_objects)}")
         lines.append(f"  allowed_colors: {', '.join(skill.allowed_colors)}")
+        if skill.aliases:
+            lines.append(f"  aliases: {', '.join(skill.aliases)}")
         if skill.examples:
             lines.append("  examples:")
             for ex in skill.examples:

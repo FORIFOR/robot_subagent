@@ -1,0 +1,24 @@
+{
+  "name": "robot-agent-ink",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ink-based TUI for the robot sub-agent (talks to Python via JSON CLI).",
+  "scripts": {
+    "ui": "tsx src/ink/index.tsx",
+    "build": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@inkjs/ui": "^2.0.0",
+    "execa": "^9.0.0",
+    "ink": "^5.0.0",
+    "react": "^18.2.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.2.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

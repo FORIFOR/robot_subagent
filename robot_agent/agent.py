@@ -151,13 +151,15 @@ def make_blocked_command(user_text: str, reason: str) -> RobotCommand:
 
 _DEFAULTS_FOR_NULLS: dict[str, object] = {
     "skill_id": "unknown",
-    "object": "unknown",
     "vla_instruction": "NOOP",
     "confidence": 0.0,
     "executable": False,
     "requires_confirmation": True,
     "reason": "ロボット命令として解釈できません",
 }
+# Note: `object` and `color` stay nullable. Object-less skills (wave_hand,
+# move_to_home) legitimately return object=null; coercing to "unknown"
+# would make the safety gate reject them on allowed_objects.
 
 
 def _coerce_nulls(data: dict) -> dict:

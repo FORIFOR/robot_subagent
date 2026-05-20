@@ -152,6 +152,32 @@ def test_remove_skill_errors_when_missing():
         remove_skill(reg, "does_not_exist")
 
 
+def test_wave_hand_registered():
+    reg = load_skill_registry(REGISTRY_PATH)
+    wave = find_skill(reg, "wave_hand")
+    assert wave is not None
+    assert wave.object_required is False
+    assert "ばいばい" in wave.aliases
+    assert wave.vla_template == "Wave your hand"
+
+
+def test_safety_allows_wave_hand_without_object():
+    reg = load_skill_registry(REGISTRY_PATH)
+    cmd = RobotCommand(
+        skill_id="wave_hand",
+        object=None,
+        color=None,
+        vla_instruction="Wave your hand",
+        confidence=0.9,
+        requires_confirmation=True,
+        executable=True,
+        reason="ばいばいはwave_handに対応",
+    )
+    result = safety_check(cmd, reg)
+    assert result.ok
+    assert result.level == "needs_confirmation"
+
+
 def test_safety_blocks_unknown_skill_marker():
     """Chitchat / non-robot input flows through as skill_id='unknown'."""
     reg = load_skill_registry(REGISTRY_PATH)

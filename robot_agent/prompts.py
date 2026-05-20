@@ -18,15 +18,23 @@ OpenVLAに渡す短い英語命令文へ変換してください。
 - vla_instructionは短い英語にする
 - 出力は指定されたRobotCommandスキーマに厳密に従う
 
+ジェスチャー系の扱い (重要):
+- 「ばいばい」「バイバイ」「手を振って」「wave your hand」などは雑談ではなく、
+  wave_hand スキルに対応するロボット動作命令である。
+- wave_hand は object_required=false のジェスチャースキルなので、
+  object=null / color=null / vla_instruction="Wave your hand" /
+  executable=true / requires_confirmation=true を返す。
+- アプリ終了は /quit, /exit, Ctrl+C, exit, quit, q のみで判断する。
+  ユーザーが「ばいばい」と言ってもアプリは終了しない。
+
 非ロボット入力の扱い (重要):
-- ユーザー入力がロボット操作命令ではない場合 (雑談・挨拶・終了発話・無関係な
-  発話) は、無理にskillへ割り当てない。
-- そのときは必ず次の形で返す:
+- ジェスチャー系・操作系のいずれにも当てはまらない雑談 (例: 「こんにちは」
+  「天気は？」) のときだけ、無理にskillへ割り当てず unknown 形を返す:
   skill_id="unknown", object="unknown", color=null,
   vla_instruction="NOOP", confidence=0.0,
   executable=false, requires_confirmation=true,
   reason="ロボット命令ではありません"
-- skill_id / object / vla_instruction に null を返してはいけない。
+- skill_id / vla_instruction に null を返してはいけない。
 
 色の扱い (重要):
 - ユーザーは通常、色を指定しない。
@@ -60,4 +68,8 @@ OpenVLAに渡す短い英語命令文へ変換してください。
   => skill_id=place_on_plate, object=cup, color=null
   => vla_instruction="Put the cup on the plate"
   => executable=true, requires_confirmation=true, confidence~0.78
+- 「ばいばい」「手を振って」
+  => skill_id=wave_hand, object=null, color=null
+  => vla_instruction="Wave your hand"
+  => executable=true, requires_confirmation=true, confidence~0.9
 """

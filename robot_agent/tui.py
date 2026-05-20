@@ -162,10 +162,9 @@ class RobotAgentApp(App):
 
     # -- input dispatch -----------------------------------------------------
 
-    _EXIT_PHRASES = {
-        "exit", "quit", "q",
-        "終了", "おわり", "終わり", "ばいばい", "バイバイ", "さようなら",
-    }
+    # Only literal exit verbs. Words like ばいばい / 手を振って belong to the
+    # wave_hand skill and must be routed to the agent, not the UI.
+    _EXIT_PHRASES = {"exit", "quit", "q"}
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         text = event.value.strip()
