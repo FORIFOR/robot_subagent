@@ -71,17 +71,32 @@ function pickStdoutJson(stdout: string): unknown {
       return JSON.parse(line);
     }
   }
-  throw new Error(`No JSON object found in stdout: ${stdout}`);
+  throw new Error(`No JSON object found in stdout`);
+}
+
+async function runJson(args: string[]): Promise<unknown> {
+  const {stdout, stderr, exitCode} = await execa(PYTHON_BIN, args, {
+    env: process.env,
+    reject: false
+  });
+  try {
+    return pickStdoutJson(stdout);
+  } catch (e) {
+    const head = (s: string) => (s.length > 600 ? s.slice(0, 600) + '…' : s);
+    const cmd = `${PYTHON_BIN} ${args.join(' ')}`;
+    const baseMessage = e instanceof Error ? e.message : String(e);
+    throw new Error(
+      `${baseMessage}\n  cmd:    ${cmd}\n  exit:   ${exitCode}\n  stderr: ${head(stderr || '(empty)')}\n  stdout: ${head(stdout || '(empty)')}`
+    );
+  }
 }
 
 export async function loadSkills(): Promise<Skill[]> {
-  const {stdout} = await execa(PYTHON_BIN, ['skills-json'], {env: process.env});
-  return SkillsResponseSchema.parse(pickStdoutJson(stdout)).skills;
+  return SkillsResponseSchema.parse(await runJson(['skills-json'])).skills;
 }
 
 export async function parseRobotCommand(text: string): Promise<ParseResponse> {
-  const {stdout} = await execa(PYTHON_BIN, ['parse-json', text], {env: process.env});
-  return ParseResponseSchema.parse(pickStdoutJson(stdout));
+  return ParseResponseSchema.parse(await runJson(['parse-json', text]));
 }
 
 // -- LLM test mode -----------------------------------------------------------
@@ -123,11 +138,7 @@ const OllamaModelsResponseSchema = z.object({
 });
 
 export async function loadOllamaModels(): Promise<string[]> {
-  const {stdout} = await execa(PYTHON_BIN, ['ollama-models-json'], {
-    env: process.env,
-    reject: false
-  });
-  const parsed = OllamaModelsResponseSchema.parse(pickStdoutJson(stdout));
+  const parsed = OllamaModelsResponseSchema.parse(await runJson(['ollama-models-json']));
   if (!parsed.ok) throw new Error(parsed.error ?? 'Failed to load Ollama models');
   return parsed.models;
 }
@@ -136,24 +147,17 @@ export async function llmChatMeasured(
   text: string,
   model: string
 ): Promise<LlmChatResponse> {
-  const {stdout} = await execa(
-    PYTHON_BIN,
-    ['llm-chat-json', text, '--model', model],
-    {env: process.env, reject: false}
+  return LlmChatResponseSchema.parse(
+    await runJson(['llm-chat-json', text, '--model', model])
   );
-  return LlmChatResponseSchema.parse(pickStdoutJson(stdout));
 }
 
 // -- robot execution ---------------------------------------------------------
 
 export async function executeRobotCommand(text: string): Promise<ExecuteResponse> {
-  const {stdout} = await execa(PYTHON_BIN, ['execute-json', text], {
-    env: process.env,
-    reject: false
-  });
   try {
-    return ExecuteResponseSchema.parse(pickStdoutJson(stdout));
-  } catch {
-    return {ok: false, error: stdout};
+    return ExecuteResponseSchema.parse(await runJson(['execute-json', text]));
+  } catch (e) {
+    return {ok: false, error: e instanceof Error ? e.message : String(e)};
   }
 }
