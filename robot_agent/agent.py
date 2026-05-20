@@ -155,21 +155,30 @@ _DEFAULTS_FOR_NULLS: dict[str, object] = {
     "confidence": 0.0,
     "executable": False,
     "requires_confirmation": True,
-    "reason": "ロボット命令として解釈できません",
 }
 # Note: `object` and `color` stay nullable. Object-less skills (wave_hand,
 # move_to_home) legitimately return object=null; coercing to "unknown"
 # would make the safety gate reject them on allowed_objects.
+# `reason` is handled separately so the default depends on context.
 
 
 def _coerce_nulls(data: dict) -> dict:
     """Fill in safe defaults for fields the LLM left as null/missing.
 
-    `color` is allowed to stay null; everything else has a non-null fallback.
+    `color` is allowed to stay null; `object` is nullable for object-less
+    skills. `reason` gets a default that depends on whether the row is an
+    'unknown'/NOOP refusal or a real skill match — otherwise we'd label
+    every successful command 'ロボット命令として解釈できません' which is
+    misleading.
     """
     for key, default in _DEFAULTS_FOR_NULLS.items():
         if data.get(key) is None:
             data[key] = default
+    if data.get("reason") in (None, ""):
+        if data.get("skill_id") == "unknown" or data.get("vla_instruction") == "NOOP":
+            data["reason"] = "ロボット命令ではありません"
+        else:
+            data["reason"] = f"{data.get('skill_id')} として解釈しました"
     return data
 
 

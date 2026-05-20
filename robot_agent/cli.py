@@ -229,7 +229,10 @@ def trace_parse_json(
 ) -> None:
     """Task Trace Mode: run a single utterance through Ollama and emit a
     full trace JSON (raw output, command, safety, evaluation, metrics)."""
-    from .ollama_robot_trace_client import trace_ollama_robot_parse
+    from .ollama_robot_trace_client import (
+        build_prompt_trace,
+        trace_ollama_robot_parse,
+    )
     from .schemas import (
         LLMTraceMetrics,
         RobotCommand,
@@ -242,7 +245,7 @@ def trace_parse_json(
     registry = load_skill_registry()
 
     try:
-        command, raw_output, metrics = trace_ollama_robot_parse(
+        command, raw_output, metrics, prompt_trace = trace_ollama_robot_parse(
             user_text=text,
             model=model,
             temperature=temperature,
@@ -259,6 +262,7 @@ def trace_parse_json(
             input=text,
             model=model,
             expected_skill=expected_skill,
+            prompt_trace=prompt_trace,
             raw_output=raw_output,
             command=command,
             safety=safety,
@@ -271,11 +275,13 @@ def trace_parse_json(
         return
 
     except Exception as e:
+        fallback_prompt = build_prompt_trace(text, model, temperature=temperature)
         fallback = TaskTraceResult(
             ok=False,
             input=text,
             model=model,
             expected_skill=expected_skill,
+            prompt_trace=fallback_prompt,
             raw_output="",
             command=RobotCommand(
                 skill_id="unknown",

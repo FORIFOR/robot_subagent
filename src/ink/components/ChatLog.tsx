@@ -52,6 +52,20 @@ export function ChatLog({items}: {items: LogItem[]}) {
               <Text>{`input: ${r.input}`}</Text>
 
               <Box marginTop={1} flexDirection="column">
+                <Text color="yellow">Prompt Trace</Text>
+                <Text>{`model: ${r.prompt_trace.model}`}</Text>
+                <Text>{`temperature: ${r.prompt_trace.temperature}`}</Text>
+                <Text>{`endpoint: ${r.prompt_trace.endpoint}`}</Text>
+                <Text color="cyan">  system message</Text>
+                <Text dimColor>{r.prompt_trace.system_message}</Text>
+                <Text color="cyan">  user text</Text>
+                <Text>{r.prompt_trace.user_text}</Text>
+                <Text dimColor>
+                  {`  (full user prompt: ${r.prompt_trace.final_user_prompt.length} chars — type /prompt to dump)`}
+                </Text>
+              </Box>
+
+              <Box marginTop={1} flexDirection="column">
                 <Text color="cyan">LLM Raw Output</Text>
                 <Text dimColor>{r.raw_output}</Text>
               </Box>

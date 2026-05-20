@@ -21,9 +21,14 @@ import httpx
 
 from .agent import _coerce_nulls, extract_json, postprocess_command
 from .prompts import ROBOT_AGENT_INSTRUCTIONS
-from .schemas import LLMTraceMetrics, RobotCommand
+from .schemas import LLMTraceMetrics, PromptMessage, PromptTrace, RobotCommand
 from .skills import load_skill_registry, render_skill_list
 from .system_metrics import SystemMetricsSampler
+
+_TRACE_SYSTEM_MESSAGE = (
+    "あなたはロボット命令をJSONに変換する安全な分類器です。"
+    "必ずJSONのみを返してください。"
+)
 
 
 def ollama_base_url() -> str:
@@ -34,9 +39,7 @@ def ollama_base_url() -> str:
     return base[:-3] if base.endswith("/v1") else base
 
 
-def _build_trace_prompt(user_text: str) -> str:
-    registry = load_skill_registry()
-    skill_text = render_skill_list(registry)
+def _build_final_user_prompt(user_text: str, skill_text: str) -> str:
     return f"""\
 {ROBOT_AGENT_INSTRUCTIONS}
 
@@ -60,8 +63,37 @@ skill_registry:
   "reason": "ロボット命令ではありません"
 }}
 
-出力は JSON のみ。Markdown や説明文は禁止。
+重要:
+- reasonは必ず入れる。null禁止。実行可能なら判断理由を日本語で書く。
+- 出力は JSON のみ。Markdown や説明文は禁止。
 """
+
+
+def build_prompt_trace(
+    user_text: str,
+    model: str,
+    *,
+    temperature: float = 0.0,
+) -> PromptTrace:
+    """Construct the PromptTrace shown alongside the model's response."""
+    registry = load_skill_registry()
+    skill_text = render_skill_list(registry)
+    final_user_prompt = _build_final_user_prompt(user_text, skill_text)
+    messages = [
+        PromptMessage(role="system", content=_TRACE_SYSTEM_MESSAGE),
+        PromptMessage(role="user", content=final_user_prompt),
+    ]
+    return PromptTrace(
+        model=model,
+        endpoint=f"{ollama_base_url()}/api/chat",
+        temperature=temperature,
+        user_text=user_text,
+        system_message=_TRACE_SYSTEM_MESSAGE,
+        final_user_prompt=final_user_prompt,
+        skill_registry_text=skill_text,
+        messages=messages,
+        request_options={"temperature": temperature, "stream": True},
+    )
 
 
 def trace_ollama_robot_parse(
@@ -69,22 +101,14 @@ def trace_ollama_robot_parse(
     model: str,
     *,
     temperature: float = 0.0,
-) -> tuple[RobotCommand, str, LLMTraceMetrics]:
-    """Run one streaming chat and return (parsed command, raw text, metrics)."""
-    url = f"{ollama_base_url()}/api/chat"
+) -> tuple[RobotCommand, str, LLMTraceMetrics, PromptTrace]:
+    """Run one streaming chat and return command, raw text, metrics, prompt trace."""
+    prompt_trace = build_prompt_trace(user_text, model, temperature=temperature)
+    url = prompt_trace.endpoint
     payload = {
         "model": model,
         "stream": True,
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "あなたはロボット命令をJSONに変換する安全な分類器です。"
-                    "必ずJSONのみを返してください。"
-                ),
-            },
-            {"role": "user", "content": _build_trace_prompt(user_text)},
-        ],
+        "messages": [m.model_dump() for m in prompt_trace.messages],
         "options": {"temperature": temperature},
     }
 
@@ -148,7 +172,7 @@ def trace_ollama_robot_parse(
             vram_peak_mb=summary.get("vram_peak_mb"),
             vram_total_mb=summary.get("vram_total_mb"),
         )
-        return command, raw_output, metrics
+        return command, raw_output, metrics, prompt_trace
 
     except Exception:
         sampler.stop()

@@ -181,11 +181,31 @@ const TaskTraceEvaluationSchema = z.object({
   notes: z.array(z.string())
 });
 
+const PromptMessageSchema = z.object({
+  role: z.string(),
+  content: z.string()
+});
+
+const PromptTraceSchema = z.object({
+  model: z.string(),
+  endpoint: z.string(),
+  temperature: z.number(),
+  user_text: z.string(),
+  system_message: z.string(),
+  final_user_prompt: z.string(),
+  skill_registry_text: z.string(),
+  messages: z.array(PromptMessageSchema),
+  request_options: z.record(z.string(), z.any()).default({})
+});
+
+export type PromptTrace = z.infer<typeof PromptTraceSchema>;
+
 const TraceResponseSchema = z.object({
   ok: z.boolean(),
   input: z.string(),
   model: z.string(),
   expected_skill: z.string(),
+  prompt_trace: PromptTraceSchema,
   raw_output: z.string(),
   command: RobotCommandSchema,
   safety: SafetySchema,

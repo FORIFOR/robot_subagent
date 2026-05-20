@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -79,6 +79,29 @@ class LLMTraceMetrics(BaseModel):
     vram_total_mb: Optional[float] = None
 
 
+class PromptMessage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    role: str
+    content: str
+
+
+class PromptTrace(BaseModel):
+    """Everything we handed to the LLM for one trace call."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    model: str
+    endpoint: str
+    temperature: float
+    user_text: str
+    system_message: str
+    final_user_prompt: str
+    skill_registry_text: str
+    messages: list[PromptMessage]
+    request_options: dict[str, Any] = Field(default_factory=dict)
+
+
 class TaskTraceEvaluation(BaseModel):
     """How well did the LLM hit the expected skill on this utterance?"""
 
@@ -103,6 +126,7 @@ class TaskTraceResult(BaseModel):
     input: str
     model: str
     expected_skill: str
+    prompt_trace: PromptTrace
     raw_output: str
     command: RobotCommand
     safety: SafetyResult

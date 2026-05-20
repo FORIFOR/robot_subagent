@@ -8,7 +8,8 @@ import {
   parseRobotCommand,
   traceRobotCommand,
   type ParseResponse,
-  type Skill
+  type Skill,
+  type TraceResponse
 } from './pythonBridge.js';
 import type {LogItem} from './types.js';
 import {SkillList} from './components/SkillList.js';
@@ -72,6 +73,7 @@ export function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [lastText, setLastText] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<ParseResponse | null>(null);
+  const [lastTrace, setLastTrace] = useState<TraceResponse | null>(null);
 
   const log = (item: LogItem) => setLogs(prev => [...prev, item]);
 
@@ -170,6 +172,7 @@ export function App() {
     setIsLoading(true);
     try {
       const result = await traceRobotCommand(text, skill, selectedModel);
+      setLastTrace(result);
       log({type: 'trace', result});
     } catch (error) {
       log({type: 'error', text: error instanceof Error ? error.message : String(error)});
@@ -223,6 +226,7 @@ export function App() {
           '  /trace <skill_id>     対象スキルのTrace Modeへ (例: /trace grab_cube)\n' +
           '  /trace-off            Trace Mode終了\n' +
           '  /bench-task <skill>   想定プロンプト一括評価\n' +
+          '  /prompt [full|system|registry|user]  直前traceの送信プロンプトを表示\n' +
           'Misc:\n' +
           '  /clear                ログクリア\n' +
           '  /help                 このヘルプ\n' +
@@ -284,6 +288,35 @@ export function App() {
       setTraceMode(false);
       setTraceSkill(null);
       log({type: 'system', text: 'Task Trace Mode OFF'});
+      return;
+    }
+    if (trimmed === '/prompt' || trimmed.startsWith('/prompt ')) {
+      if (!lastTrace) {
+        log({type: 'error', text: '直前のtraceがありません。まず /trace <skill> + 自然文を入力してください。'});
+        return;
+      }
+      const section = trimmed.slice('/prompt'.length).trim();
+      const p = lastTrace.prompt_trace;
+      if (section === '' || section === 'full') {
+        log({
+          type: 'system',
+          text:
+            `# Prompt Trace (${p.model}, temperature=${p.temperature})\n` +
+            `endpoint: ${p.endpoint}\n\n` +
+            p.messages.map(m => `### ${m.role}\n${m.content}`).join('\n\n')
+        });
+      } else if (section === 'system') {
+        log({type: 'system', text: `# system\n${p.system_message}`});
+      } else if (section === 'registry') {
+        log({type: 'system', text: `# skill_registry snapshot\n${p.skill_registry_text}`});
+      } else if (section === 'user') {
+        log({type: 'system', text: `# final user prompt\n${p.final_user_prompt}`});
+      } else {
+        log({
+          type: 'error',
+          text: `/prompt の引数は full / system / registry / user のいずれかです。指定値=${section}`
+        });
+      }
       return;
     }
     if (trimmed.startsWith('/bench-task ')) {
