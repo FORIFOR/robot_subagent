@@ -152,6 +152,68 @@ export async function llmChatMeasured(
   );
 }
 
+// -- task trace --------------------------------------------------------------
+
+const TraceMetricsSchema = z.object({
+  total_time_s: z.number(),
+  first_token_time_s: z.number().nullable().optional(),
+  eval_count: z.number().nullable().optional(),
+  eval_duration_s: z.number().nullable().optional(),
+  tokens_per_second: z.number().nullable().optional(),
+  cpu_peak_percent: z.number().nullable().optional(),
+  cpu_avg_percent: z.number().nullable().optional(),
+  ram_peak_mb: z.number().nullable().optional(),
+  ram_peak_percent: z.number().nullable().optional(),
+  gpu_peak_percent: z.number().nullable().optional(),
+  gpu_avg_percent: z.number().nullable().optional(),
+  vram_peak_mb: z.number().nullable().optional(),
+  vram_total_mb: z.number().nullable().optional()
+});
+
+const TaskTraceEvaluationSchema = z.object({
+  expected_skill: z.string(),
+  skill_match: z.boolean(),
+  object_match: z.boolean(),
+  instruction_ok: z.boolean(),
+  executable_ok: z.boolean(),
+  safety_ok: z.boolean(),
+  score: z.number(),
+  notes: z.array(z.string())
+});
+
+const TraceResponseSchema = z.object({
+  ok: z.boolean(),
+  input: z.string(),
+  model: z.string(),
+  expected_skill: z.string(),
+  raw_output: z.string(),
+  command: RobotCommandSchema,
+  safety: SafetySchema,
+  evaluation: TaskTraceEvaluationSchema,
+  generated_command: z.string().nullable().optional(),
+  metrics: TraceMetricsSchema,
+  error: z.string().nullable().optional()
+});
+
+export type TraceResponse = z.infer<typeof TraceResponseSchema>;
+
+export async function traceRobotCommand(
+  text: string,
+  expectedSkill: string,
+  model: string
+): Promise<TraceResponse> {
+  return TraceResponseSchema.parse(
+    await runJson([
+      'trace-parse-json',
+      text,
+      '--expected-skill',
+      expectedSkill,
+      '--model',
+      model
+    ])
+  );
+}
+
 // -- robot execution ---------------------------------------------------------
 
 export async function executeRobotCommand(text: string): Promise<ExecuteResponse> {

@@ -6,6 +6,7 @@ import {
   loadOllamaModels,
   loadSkills,
   parseRobotCommand,
+  traceRobotCommand,
   type ParseResponse,
   type Skill
 } from './pythonBridge.js';
@@ -22,6 +23,37 @@ const BENCH_PROMPTS: readonly string[] = [
   'こんにちは。今日の作業を一言で励ましてください。'
 ];
 
+const TASK_BENCH_PROMPTS: Record<string, readonly string[]> = {
+  grab_cube: [
+    'キューブをつかんで',
+    'cubeをつかんで',
+    'ブロックを掴んで',
+    'Grab the cube',
+    '赤いキューブをつかんで',
+    '四角いやつを取って',
+    'これを取って'
+  ],
+  pick_apple: [
+    'りんごを取って',
+    'リンゴをつかんで',
+    'Pick the apple',
+    '赤いりんごを取って'
+  ],
+  place_on_plate: [
+    'カップを皿に置いて',
+    'cubeをプレートに置いて',
+    'place on plate',
+    '青いカップを皿に置いて'
+  ],
+  wave_hand: [
+    'ばいばい',
+    'バイバイ',
+    '手を振って',
+    'wave your hand'
+  ],
+  move_to_home: ['ホームに戻って', 'home pose', '初期姿勢に戻して']
+};
+
 export function App() {
   const {exit} = useApp();
 
@@ -35,6 +67,8 @@ export function App() {
   ]);
   const [executeMode, setExecuteMode] = useState(false);
   const [llmTestMode, setLlmTestMode] = useState(false);
+  const [traceMode, setTraceMode] = useState(false);
+  const [traceSkill, setTraceSkill] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lastText, setLastText] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<ParseResponse | null>(null);
@@ -131,6 +165,32 @@ export function App() {
     log({type: 'system', text: `Benchmark finished: ${selectedModel}`});
   }
 
+  async function handleTrace(text: string, skill: string) {
+    log({type: 'user', text});
+    setIsLoading(true);
+    try {
+      const result = await traceRobotCommand(text, skill, selectedModel);
+      log({type: 'trace', result});
+    } catch (error) {
+      log({type: 'error', text: error instanceof Error ? error.message : String(error)});
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function runTaskBench(skill: string) {
+    const prompts = TASK_BENCH_PROMPTS[skill];
+    if (!prompts) {
+      log({type: 'error', text: `Unknown bench task: ${skill}. 候補: ${Object.keys(TASK_BENCH_PROMPTS).join(', ')}`});
+      return;
+    }
+    log({type: 'system', text: `Task bench started: ${skill} / ${selectedModel}`});
+    for (const prompt of prompts) {
+      await handleTrace(prompt, skill);
+    }
+    log({type: 'system', text: `Task bench finished: ${skill}`});
+  }
+
   async function handleSubmit(text: string) {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -159,6 +219,10 @@ export function App() {
           '  /models               Ollama モデル一覧再読込\n' +
           '  /model <name>         使用モデル変更\n' +
           '  /bench                定型プロンプトを連投して比較\n' +
+          'Task Trace:\n' +
+          '  /trace <skill_id>     対象スキルのTrace Modeへ (例: /trace grab_cube)\n' +
+          '  /trace-off            Trace Mode終了\n' +
+          '  /bench-task <skill>   想定プロンプト一括評価\n' +
           'Misc:\n' +
           '  /clear                ログクリア\n' +
           '  /help                 このヘルプ\n' +
@@ -190,11 +254,45 @@ export function App() {
         log({type: 'system', text: `LLM Test Mode -> ${!prev ? 'ON' : 'OFF'}`});
         return !prev;
       });
+      setTraceMode(false);
+      setTraceSkill(null);
       return;
     }
     if (trimmed === '/robot') {
       setLlmTestMode(false);
-      log({type: 'system', text: 'LLM Test Mode -> OFF (robot command mode)'});
+      setTraceMode(false);
+      setTraceSkill(null);
+      log({type: 'system', text: 'Robot Command Mode'});
+      return;
+    }
+    if (trimmed.startsWith('/trace ')) {
+      const skill = trimmed.slice('/trace '.length).trim();
+      if (!skill) {
+        log({type: 'error', text: '使い方: /trace grab_cube'});
+        return;
+      }
+      setTraceSkill(skill);
+      setTraceMode(true);
+      setLlmTestMode(false);
+      log({
+        type: 'system',
+        text: `Task Trace Mode ON. expected_skill=${skill}, model=${selectedModel}`
+      });
+      return;
+    }
+    if (trimmed === '/trace-off') {
+      setTraceMode(false);
+      setTraceSkill(null);
+      log({type: 'system', text: 'Task Trace Mode OFF'});
+      return;
+    }
+    if (trimmed.startsWith('/bench-task ')) {
+      const skill = trimmed.slice('/bench-task '.length).trim();
+      if (!skill) {
+        log({type: 'error', text: '使い方: /bench-task grab_cube'});
+        return;
+      }
+      await runTaskBench(skill);
       return;
     }
     if (trimmed.startsWith('/model ')) {
@@ -220,6 +318,10 @@ export function App() {
       return;
     }
 
+    if (traceMode && traceSkill) {
+      await handleTrace(trimmed, traceSkill);
+      return;
+    }
     if (llmTestMode) {
       await handleLlmChat(trimmed);
       return;
@@ -250,7 +352,9 @@ export function App() {
     <Box flexDirection="column">
       <Box marginBottom={1} paddingX={1}>
         <Text bold>Robot Agent Ink UI</Text>
-        <Text dimColor>{`   model: ${selectedModel}   llm_test: ${llmTestMode ? 'ON' : 'OFF'}`}</Text>
+        <Text dimColor>
+          {`   model: ${selectedModel}   llm_test: ${llmTestMode ? 'ON' : 'OFF'}   trace: ${traceMode && traceSkill ? traceSkill : 'OFF'}`}
+        </Text>
       </Box>
 
       <Box flexDirection="row" gap={1}>

@@ -220,6 +220,92 @@ def llm_chat_json(
     typer.echo(json.dumps(result.to_dict(), ensure_ascii=False))
 
 
+@app.command("trace-parse-json")
+def trace_parse_json(
+    text: str = typer.Argument(..., help="User utterance"),
+    expected_skill: str = typer.Option(..., "--expected-skill"),
+    model: str = typer.Option("qwen3:14b", "--model"),
+    temperature: float = typer.Option(0.0, "--temperature"),
+) -> None:
+    """Task Trace Mode: run a single utterance through Ollama and emit a
+    full trace JSON (raw output, command, safety, evaluation, metrics)."""
+    from .ollama_robot_trace_client import trace_ollama_robot_parse
+    from .schemas import (
+        LLMTraceMetrics,
+        RobotCommand,
+        SafetyResult,
+        TaskTraceEvaluation,
+        TaskTraceResult,
+    )
+    from .task_trace import evaluate_task_trace
+
+    registry = load_skill_registry()
+
+    try:
+        command, raw_output, metrics = trace_ollama_robot_parse(
+            user_text=text,
+            model=model,
+            temperature=temperature,
+        )
+        safety = safety_check(command, registry)
+        evaluation = evaluate_task_trace(
+            command=command,
+            safety=safety,
+            registry=registry,
+            expected_skill=expected_skill,
+        )
+        result = TaskTraceResult(
+            ok=evaluation.score >= 0.8 and safety.ok,
+            input=text,
+            model=model,
+            expected_skill=expected_skill,
+            raw_output=raw_output,
+            command=command,
+            safety=safety,
+            evaluation=evaluation,
+            generated_command=None,  # populated once a lerobot_record executor lands
+            metrics=metrics,
+            error=None,
+        )
+        typer.echo(json.dumps(result.model_dump(), ensure_ascii=False))
+        return
+
+    except Exception as e:
+        fallback = TaskTraceResult(
+            ok=False,
+            input=text,
+            model=model,
+            expected_skill=expected_skill,
+            raw_output="",
+            command=RobotCommand(
+                skill_id="unknown",
+                object=None,
+                color=None,
+                vla_instruction="NOOP",
+                confidence=0.0,
+                requires_confirmation=True,
+                executable=False,
+                reason=f"trace failed: {e!r}",
+            ),
+            safety=SafetyResult(ok=False, level="blocked", reason=str(e)),
+            evaluation=TaskTraceEvaluation(
+                expected_skill=expected_skill,
+                skill_match=False,
+                object_match=False,
+                instruction_ok=False,
+                executable_ok=False,
+                safety_ok=False,
+                score=0.0,
+                notes=[str(e)],
+            ),
+            generated_command=None,
+            metrics=LLMTraceMetrics(total_time_s=0.0),
+            error=str(e),
+        )
+        typer.echo(json.dumps(fallback.model_dump(), ensure_ascii=False))
+        raise typer.Exit(code=1)
+
+
 @app.command()
 def ui(
     execute: bool = typer.Option(False, "--execute", help="Start in execute mode"),

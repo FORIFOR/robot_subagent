@@ -5,7 +5,8 @@ from pathlib import Path
 import pytest
 
 from robot_agent.safety import safety_check
-from robot_agent.schemas import RobotCommand, Skill, SkillRegistry
+from robot_agent.schemas import RobotCommand, SafetyResult, Skill, SkillRegistry
+from robot_agent.task_trace import evaluate_task_trace
 from robot_agent.skills import (
     add_skill,
     find_skill,
@@ -150,6 +151,81 @@ def test_remove_skill_errors_when_missing():
     reg = load_skill_registry(REGISTRY_PATH)
     with pytest.raises(ValueError, match="not found"):
         remove_skill(reg, "does_not_exist")
+
+
+def _safety_ok() -> SafetyResult:
+    return SafetyResult(ok=True, level="needs_confirmation", reason="ok")
+
+
+def test_trace_eval_perfect_match():
+    reg = load_skill_registry(REGISTRY_PATH)
+    cmd = RobotCommand(
+        skill_id="grab_cube",
+        object="cube",
+        color=None,
+        vla_instruction="Grab the cube",
+        confidence=0.9,
+        requires_confirmation=True,
+        executable=True,
+        reason="ok",
+    )
+    e = evaluate_task_trace(cmd, _safety_ok(), reg, expected_skill="grab_cube")
+    assert e.score == 1.0
+    assert e.skill_match and e.object_match and e.instruction_ok
+
+
+def test_trace_eval_color_variant_accepted():
+    """`Grab the red cube` should match the grab_cube expected skill too."""
+    reg = load_skill_registry(REGISTRY_PATH)
+    cmd = RobotCommand(
+        skill_id="grab_cube",
+        object="cube",
+        color="red",
+        vla_instruction="Grab the red cube",
+        confidence=0.9,
+        requires_confirmation=True,
+        executable=True,
+        reason="ok",
+    )
+    e = evaluate_task_trace(cmd, _safety_ok(), reg, expected_skill="grab_cube")
+    assert e.instruction_ok
+    assert e.score == 1.0
+
+
+def test_trace_eval_skill_mismatch_drops_score():
+    reg = load_skill_registry(REGISTRY_PATH)
+    cmd = RobotCommand(
+        skill_id="pick_apple",
+        object="apple",
+        color=None,
+        vla_instruction="Pick the apple",
+        confidence=0.9,
+        requires_confirmation=True,
+        executable=True,
+        reason="ok",
+    )
+    e = evaluate_task_trace(cmd, _safety_ok(), reg, expected_skill="grab_cube")
+    assert not e.skill_match
+    # object and instruction don't match grab_cube either
+    assert e.score < 0.5
+    assert any("skill mismatch" in n for n in e.notes)
+
+
+def test_trace_eval_object_less_skill_passes_without_object():
+    reg = load_skill_registry(REGISTRY_PATH)
+    cmd = RobotCommand(
+        skill_id="wave_hand",
+        object=None,
+        color=None,
+        vla_instruction="Wave your hand",
+        confidence=0.9,
+        requires_confirmation=True,
+        executable=True,
+        reason="ok",
+    )
+    e = evaluate_task_trace(cmd, _safety_ok(), reg, expected_skill="wave_hand")
+    assert e.score == 1.0
+    assert e.object_match
 
 
 def test_wave_hand_registered():
