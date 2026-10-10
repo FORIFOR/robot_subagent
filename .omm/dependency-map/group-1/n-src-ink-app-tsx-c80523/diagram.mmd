@@ -1,0 +1,18 @@
+graph TD
+    source["ソース\nsrc/ink/app.tsx"]
+    n-react-6b810c["react\n外部・別名・未解決"]
+    source -->|"字句抽出: import／export"| n-react-6b810c
+    n-ink-ec437a["ink\n外部・別名・未解決"]
+    source -->|"字句抽出: import／export"| n-ink-ec437a
+    n-pythonbridge-js-b53cd4["./pythonBridge.js\nsrc/ink/pythonBridge.ts"]
+    source -->|"字句抽出: import／export"| n-pythonbridge-js-b53cd4
+    n-types-js-eb4bb1["./types.js\nsrc/ink/types.ts"]
+    source -->|"字句抽出: import／export"| n-types-js-eb4bb1
+    n-components-skilllist-js-b1aa87["./components/SkillList.js\nsrc/ink/components/SkillList.tsx"]
+    source -->|"字句抽出: import／export"| n-components-skilllist-js-b1aa87
+    n-components-chatlog-js-b1e22c["./components/ChatLog.js\nsrc/ink/components/ChatLog.tsx"]
+    source -->|"字句抽出: import／export"| n-components-chatlog-js-b1e22c
+    n-components-commandinput-js-850c69["./components/CommandInput.js\nsrc/ink/components/CommandInput.tsx"]
+    source -->|"字句抽出: import／export"| n-components-commandinput-js-850c69
+    n-components-statusbar-js-0486cf["./components/StatusBar.js\nsrc/ink/components/StatusBar.tsx"]
+    source -->|"字句抽出: import／export"| n-components-statusbar-js-0486cf

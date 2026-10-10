@@ -1,0 +1,8 @@
+graph TD
+    source["ソース\nsrc/ink/index.tsx"]
+    n-react-6b810c["react\n外部・別名・未解決"]
+    source -->|"字句抽出: import／export"| n-react-6b810c
+    n-ink-ec437a["ink\n外部・別名・未解決"]
+    source -->|"字句抽出: import／export"| n-ink-ec437a
+    n-app-js-ab7bbd["./app.js\nsrc/ink/app.tsx"]
+    source -->|"字句抽出: import／export"| n-app-js-ab7bbd

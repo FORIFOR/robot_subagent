@@ -1,0 +1,82 @@
+{
+  "repo": "FORIFOR/robot_subagent",
+  "branch": "main",
+  "tree_sha": "4aa5802d360f27825406f196d8c0c69122334e53",
+  "tree_files": 32,
+  "read_files": [
+    {
+      "path": "README.md",
+      "sha": "b232c036e4b29b5554d49a29be6b921a8e6640ac"
+    },
+    {
+      "path": "package.json",
+      "sha": "0bd3d10522520924c9a71fa9d468c03bb092ddd5"
+    },
+    {
+      "path": "pyproject.toml",
+      "sha": "5d143ec8d8701118f34d7f56ab2dc9287fdd5c85"
+    },
+    {
+      "path": "src/ink/app.tsx",
+      "sha": "fd6fad18256a9c7cc4fad6d94f857ebadd257147"
+    },
+    {
+      "path": "src/ink/index.tsx",
+      "sha": "166b749a1c35253ed9b0188a9f3f1084482c30d3"
+    },
+    {
+      "path": "robot_agent/cli.py",
+      "sha": "996ca8e0efee450bdf8db66a068e943dde4539a2"
+    },
+    {
+      "path": "src/ink/pythonBridge.ts",
+      "sha": "2e443234dd29d67cf5c038d2e2c3d120f40f501d"
+    },
+    {
+      "path": "src/ink/types.ts",
+      "sha": "ca9181e2d5d9697eafc4e0163150058fdb471af6"
+    },
+    {
+      "path": "src/ink/components/SkillList.tsx",
+      "sha": "e0c63c4dfef21a1295e137b0af3e020f0e4c1933"
+    },
+    {
+      "path": "src/ink/components/ChatLog.tsx",
+      "sha": "4a0683500036af1950a2c374ba67c3d6ac15c491"
+    },
+    {
+      "path": "src/ink/components/CommandInput.tsx",
+      "sha": "82f9a4619139c4a5e73466eb1bc19a43f4fd64f0"
+    },
+    {
+      "path": "src/ink/components/StatusBar.tsx",
+      "sha": "53670a9e5150127c3fdc4517c2289493382a4814"
+    },
+    {
+      "path": "robot_agent/agent.py",
+      "sha": "93e72d13de28e2466bfeda6b120e42be2dd52472"
+    },
+    {
+      "path": "robot_agent/openvla_client.py",
+      "sha": "10b771ba8930666d1042048bce9334b5a9e52a80"
+    },
+    {
+      "path": "robot_agent/safety.py",
+      "sha": "f5f7e01daa35b85208846549d228ff0e38cd8afb"
+    },
+    {
+      "path": "robot_agent/schemas.py",
+      "sha": "87ede1f952cc6b2d41d0c4237a269655ace8f73d"
+    },
+    {
+      "path": "robot_agent/skills.py",
+      "sha": "19ae29b1aa888a877cf95c0ae279e12a96bd59ba"
+    },
+    {
+      "path": "robot_agent/ollama_test_client.py",
+      "sha": "b7df86a48ae4572dd1fc0262b5248afdbcca2009"
+    }
+  ],
+  "not_read_count": 14,
+  "scope": "initial entry-point and direct-import analysis; not exhaustive semantic scan"
+}

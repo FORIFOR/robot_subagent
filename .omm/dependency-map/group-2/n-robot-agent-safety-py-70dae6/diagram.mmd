@@ -1,0 +1,8 @@
+graph TD
+    source["ソース\nrobot_agent/safety.py"]
+    n-future-05a733["__future__\n外部・別名・未解決"]
+    source -->|"Python AST: import／export"| n-future-05a733
+    n-schemas-c20018["schemas\nrobot_agent/schemas.py"]
+    source -->|"Python AST: import／export"| n-schemas-c20018
+    n-skills-816f2b["skills\nrobot_agent/skills.py"]
+    source -->|"Python AST: import／export"| n-skills-816f2b
